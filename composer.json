@@ -10,7 +10,8 @@
         "google/auth": "^1.49",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
-        "php-mqtt/laravel-client": "^1.6"
+        "php-mqtt/laravel-client": "^1.6",
+        "pusher/pusher-php-server": "^7.2"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

@@ -45,6 +45,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/{deviceId}/resolution', [App\Http\Controllers\CameraController::class, 'setResolution'])->name('resolution');
         Route::get('/{deviceId}/latest', [App\Http\Controllers\CameraController::class, 'latest'])->name('latest');
         Route::get('/{deviceId}/status', [App\Http\Controllers\CameraController::class, 'getDeviceStatus'])->name('status');
+        Route::get('/{deviceId}/latest-frame', [App\Http\Controllers\CameraController::class, 'getLatestFrame'])->name('latest-frame');
     });
     
     // Notification Routes

@@ -65,6 +65,11 @@ class CameraMqttSubscriber extends Command
             $this->handleImageMessage($topic, $message);
         }, 1);
 
+        // Subscribe to camera stream frames (WebSocket)
+        $mqtt->subscribe('iot/devices/+/stream', function (string $topic, string $message) {
+            $this->handleStreamMessage($topic, $message);
+        }, 1);
+
         $this->info('Subscribed to camera topics. Listening...');
 
         // This will throw exception when connection drops
@@ -130,6 +135,55 @@ class CameraMqttSubscriber extends Command
 
         } catch (\Exception $e) {
             Log::error('Failed to process camera image', [
+                'error' => $e->getMessage(),
+                'topic' => $topic,
+            ]);
+        }
+    }
+
+    /**
+     * Handle camera stream frames for WebSocket broadcasting
+     */
+    private function handleStreamMessage(string $topic, string $message)
+    {
+        try {
+            $data = json_decode($message, true);
+
+            if (!isset($data['device_id']) || !isset($data['frame'])) {
+                return;
+            }
+
+            $deviceId = $data['device_id'];
+            $frameBase64 = $data['frame'];
+            $timestamp = $data['timestamp'] ?? time();
+            $fps = $data['fps'] ?? 0;
+
+            // Cache latest frame (10 second TTL, fallback for WebSocket disconnect)
+            \Illuminate\Support\Facades\Cache::put(
+                "camera:{$deviceId}:latest_frame",
+                $frameBase64,
+                10
+            );
+
+            // Broadcast frame to WebSocket channel via Pusher
+            event(new \App\Events\CameraFrameReceived(
+                $deviceId,
+                $frameBase64,
+                $timestamp,
+                $fps
+            ));
+
+            $frameSize = strlen($frameBase64);
+            $this->line("[STREAM] {$deviceId}: {$frameSize} chars (base64) | FPS: {$fps}");
+
+            Log::info('Camera frame broadcasted', [
+                'device_id' => $deviceId,
+                'frame_size' => $frameSize,
+                'fps' => $fps,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to process camera stream', [
                 'error' => $e->getMessage(),
                 'topic' => $topic,
             ]);

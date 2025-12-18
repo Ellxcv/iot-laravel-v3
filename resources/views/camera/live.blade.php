@@ -478,6 +478,104 @@
                 }, 3000);
             }
         </script>
+
+        {{-- Pusher WebSocket Client for Real-Time Streaming --}}
+        @if($selectedCamera)
+        <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+        <script>
+            const deviceId = '{{ $selectedCamera->deviceId }}';
+            
+            // Initialize Pusher
+            const pusher = new Pusher('{{ env('PUSHER_APP_KEY') }}', {
+                cluster: '{{ env('PUSHER_APP_CLUSTER', 'ap1') }}',
+                encrypted: true
+            });
+            
+            // Subscribe to camera stream channel
+            const channel = pusher.subscribe(`camera.${deviceId}`);
+            
+            // FPS tracking
+            let lastFrameTime = 0;
+            let currentFps = 0;
+            
+            // Listen for camera frames
+            channel.bind('CameraFrameReceived', function(data) {
+                console.log('[WebSocket] Frame received:', {
+                    deviceId: data.deviceId,
+                    timestamp: data.timestamp,
+                    fps: data.fps,
+                    frameSize: data.frameData.length
+                });
+                
+                // Update frame image
+                const streamImage = document.getElementById('streamImage');
+                streamImage.src = 'data:image/jpeg;base64,' + data.frameData;
+                
+                // Calculate FPS
+                const now = Date.now();
+                if (lastFrameTime > 0) {
+                    const dt = (now - lastFrameTime) / 1000;
+                    currentFps = (1 / dt).toFixed(2);
+                    
+                    // Update FPS display
+                    const fpsElements = document.querySelectorAll('[data-fps]');
+                    fpsElements.forEach(el => {
+                        el.textContent = currentFps;
+                    });
+                }
+                lastFrameTime = now;
+                
+                // Hide loading, show stream
+                document.getElementById('loadingOverlay').classList.remove('flex');
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                document.getElementById('errorOverlay').classList.remove('flex');
+                document.getElementById('errorOverlay').classList.add('hidden');
+                
+                // Update status to live
+                updateWebSocketStatus('live');
+            });
+            
+            // Connection state handling
+            pusher.connection.bind('connected', function() {
+                console.log('[WebSocket] Connected to Pusher');
+                updateWebSocketStatus('connecting');
+            });
+            
+            pusher.connection.bind('disconnected', function() {
+                console.log('[WebSocket] Disconnected from Pusher');
+                updateWebSocketStatus('offline');
+            });
+            
+            pusher.connection.bind('error', function(err) {
+                console.error('[WebSocket] Connection error:', err);
+                updateWebSocketStatus('error');
+            });
+            
+            function updateWebSocketStatus(state) {
+                const streamStatus = document.getElementById('streamStatus');
+                const statusConfig = {
+                    'connecting': { color: 'yellow', text: 'Connecting...', pulse: false },
+                    'live': { color: 'green', text: 'Live', pulse: true },
+                    'offline': { color: 'red', text: 'Offline', pulse: false },
+                    'error': { color: 'red', text: 'Error', pulse: false }
+                };
+                
+                const config = statusConfig[state];
+                const pulseClass = config.pulse ? 'animate-pulse' : '';
+                
+                streamStatus.innerHTML = `
+                    <div class="w-2 h-2 rounded-full bg-${config.color}-400 ${pulseClass}"></div>
+                    <span class="text-sm text-${config.color}-100 font-medium">${config.text}</span>
+                `;
+            }
+            
+            // Auto-start stream on page load (WebSocket ready)
+            window.addEventListener('load', function() {
+                console.log('[WebSocket] Page loaded, waiting for frames...');
+                // Status will update when first frame arrives or connection states change
+            });
+        </script>
+        @endif
     </x-slot>
 
 </x-layout>

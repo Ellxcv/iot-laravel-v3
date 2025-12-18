@@ -288,4 +288,25 @@ class CameraController extends Controller
             ], 404);
         }
     }
+
+    /**
+     * Get latest cached frame (fallback for WebSocket disconnect)
+     */
+    public function getLatestFrame(string $deviceId): JsonResponse
+    {
+        $frame = \Illuminate\Support\Facades\Cache::get("camera:{$deviceId}:latest_frame");
+
+        if (!$frame) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No recent frame available',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'frame' => $frame,
+            'timestamp' => time(),
+        ]);
+    }
 }
