@@ -32,7 +32,9 @@ class GetHistoricalDataUseCase
                 deviceId: $dto->deviceId,
                 sensorType: $dto->sensorType,
                 startDate: $dto->startDate,
-                endDate: $dto->endDate
+                endDate: $dto->endDate,
+                dataType: $dto->dataType,
+                actuatorType: $dto->actuatorType
             );
         }
 

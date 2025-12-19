@@ -25,7 +25,9 @@ interface IoTRepositoryInterface
         ?int $deviceId,
         ?string $sensorType,
         ?\DateTime $startDate,
-        ?\DateTime $endDate
+        ?\DateTime $endDate,
+        ?string $dataType = 'sensors',
+        ?string $actuatorType = null
     ): array;
 
     /**

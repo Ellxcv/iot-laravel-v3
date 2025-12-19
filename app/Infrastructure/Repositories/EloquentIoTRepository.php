@@ -89,8 +89,15 @@ class EloquentIoTRepository implements IoTRepositoryInterface
         ?int $deviceId,
         ?string $sensorType,
         ?\DateTime $startDate,
-        ?\DateTime $endDate
+        ?\DateTime $endDate,
+        ?string $dataType = 'sensors',
+        ?string $actuatorType = null
     ): array {
+        // If querying actuators, use ActuatorHistory statistics
+        if ($dataType === 'actuators') {
+            return $this->getActuatorHistoricalDataStats($deviceId, $actuatorType, $startDate, $endDate);
+        }
+        
         // Map sensor types to ESP32 column names
         $columnMap = [
             'temperature' => 'temperature',
@@ -255,6 +262,65 @@ class EloquentIoTRepository implements IoTRepositoryInterface
             'per_page' => $paginator->perPage(),
             'total' => $totalRecordsOverall,
             'last_page' => $paginator->lastPage(),
+        ];
+    }
+
+    /**
+     * Get actuator historical data statistics
+     */
+    private function getActuatorHistoricalDataStats(
+        ?int $deviceId,
+        ?string $actuatorType,
+        ?\DateTime $startDate,
+        ?\DateTime $endDate
+    ): array {
+        // Map actuator types to column names
+        $columnMap = [
+            'fan' => 'fan_duty_pct',
+            'heater' => 'heater_duty_pct',
+            'humidifier' => 'humid_duty_pct',
+        ];
+        
+        // If no specific actuator type, we can't calculate meaningful stats
+        if ($actuatorType === null || !isset($columnMap[$actuatorType])) {
+            return [
+                'count' => 0,
+                'avg' => null,
+                'min' => null,
+                'max' => null,
+            ];
+        }
+        
+        $column = $columnMap[$actuatorType];
+        
+        $query = ActuatorHistory::query();
+        
+        // Apply filters
+        if ($deviceId !== null) {
+            $query->where('device_id', $deviceId);
+        }
+        
+        if ($startDate !== null) {
+            $query->where('created_at', '>=', $startDate);
+        }
+        
+        if ($endDate !== null) {
+            $query->where('created_at', '<=', $endDate);
+        }
+        
+        // Get aggregates for specific actuator column
+        $stats = $query->selectRaw("
+            COUNT(*) as count,
+            AVG($column) as avg_value,
+            MIN($column) as min_value,
+            MAX($column) as max_value
+        ")->first();
+        
+        return [
+            'count' => $stats->count ?? 0,
+            'avg' => $stats->avg_value ? round($stats->avg_value, 2) : null,
+            'min' => $stats->min_value ? round($stats->min_value, 2) : null,
+            'max' => $stats->max_value ? round($stats->max_value, 2) : null,
         ];
     }
 
