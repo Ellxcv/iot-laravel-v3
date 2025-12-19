@@ -34,7 +34,7 @@ class HistoryController extends Controller
     {
         $validated = $request->validate([
             'device_id' => 'nullable|integer|exists:iot_devices,id',
-            'sensor_type' => 'nullable|string|in:temperature,humidity,water_level,soil_moisture,odor_index',
+            'sensor_type' => 'nullable|string|in:temperature,humidity,water_level,soil_moisture,odor_index,co2_ppm,weight',
             'data_type' => 'nullable|string|in:sensors,actuators',
             'actuator_type' => 'nullable|string|in:fan,heater,humidifier',
             'start_date' => 'nullable|date',

@@ -98,9 +98,9 @@
                 </div>
             </div>
 
-            {{-- Odor Index Chart --}}
+            {{-- CO₂ PPM Chart --}}
             <div class="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20">
-                <h3 class="text-lg font-semibold text-white mb-4">Odor Index</h3>
+                <h3 class="text-lg font-semibold text-white mb-4">CO₂ PPM</h3>
                 <div class="h-64">
                     <canvas id="odorChart"></canvas>
                 </div>
@@ -153,10 +153,6 @@
                     MQ135 (Air Quality)
                 </h3>
                 <div class="space-y-3">
-                    <div>
-                        <p class="text-sm text-indigo-300">Odor Index</p>
-                        <p class="text-2xl font-bold text-white" id="mq_odor">--</p>
-                    </div>
                     <div>
                         <p class="text-sm text-indigo-300">CO₂ PPM</p>
                         <p class="text-2xl font-bold text-white" id="co2_ppm">--</p>
@@ -434,7 +430,6 @@
                         document.getElementById('dht_hi').textContent = (sensors.heat_index || '--') + '°C';
 
                         // MQ135 - map to OLD element IDs
-                        document.getElementById('mq_odor').textContent = sensors.odor_index || sensors.odor || '--';
                         document.getElementById('co2_ppm').textContent = sensors.co2_ppm || '--';  
                         document.getElementById('mq_vpin').textContent = (sensors.mq_vpin || sensors.vpin || '--') + ' V';
                         document.getElementById('mq_vgas').textContent = (sensors.mq_vgas || sensors.vgas || '--') + ' V';
@@ -512,7 +507,7 @@
                         
                         if (charts.odor) {
                             charts.odor.data.labels = labels;
-                            charts.odor.data.datasets[0].data = data.map(d => d.odor_index || 0);
+                            charts.odor.data.datasets[0].data = data.map(d => d.co2_ppm || 0);
                             charts.odor.update();
                         }
                         

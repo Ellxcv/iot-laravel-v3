@@ -177,7 +177,7 @@ class IoTController extends Controller
         $data = SensorData::where('device_id', $device->id)
             ->where('created_at', '>=', now()->subHours($hours))
             ->orderBy('created_at')
-            ->get(['created_at', 'temperature', 'humidity', 'water_level', 'soil_moisture', 'odor_index']);
+            ->get(['created_at', 'temperature', 'humidity', 'water_level', 'soil_moisture', 'co2_ppm', 'weight']);
         
         return response()->json($data);
     }
