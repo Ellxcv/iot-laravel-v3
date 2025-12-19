@@ -340,14 +340,6 @@
                 setTimeout(startStream, 1000);
             });
 
-            // Auto-refresh stream every 30 seconds
-            setInterval(function() {
-                if (retryCount === 0) {
-                    const streamImage = document.getElementById('streamImage');
-                    streamImage.src = currentStreamUrl + '?t=' + new Date().getTime();
-                }
-            }, 30000);
-
             // Auto-update device status (FPS, etc) every 5 seconds
             @if($selectedCamera)
             setInterval(function() {
