@@ -30,6 +30,7 @@ class CheckDeviceStatusCommand extends Command
             ->get();
 
         $notificationsSent = 0;
+        $timersReset = 0;
         $devicesChecked = 0;
 
         foreach ($devices as $device) {
@@ -47,19 +48,34 @@ class CheckDeviceStatusCommand extends Command
                 continue;
             }
 
+            // NEW FEATURE: Reset notification timer when device comes back online
+            // This allows fresh notifications if device goes offline again
+            if ($device->isOnline()) {
+                // If device is online and has a notification timestamp, reset it
+                if ($settings->last_notified_at !== null) {
+                    $settings->last_notified_at = null;
+                    $settings->save();
+                    $timersReset++;
+                    $this->info("  ✓ Reset notification timer for online device: {$device->name}");
+                }
+                continue; // Skip to next device (no need to check offline)
+            }
+
+            // Device is offline - check if we should send notification
+            
             // Skip if not enough time has passed since last notification (prevent spam)
             if (!$settings->isNotificationDue()) {
                 continue;
             }
 
-            // Check if device is offline
+            // Check if device is offline beyond timeout threshold
             if ($this->isDeviceOffline($device, $settings->getTimeoutMinutes())) {
                 $this->sendOfflineNotification($device, $settings);
                 $notificationsSent++;
             }
         }
 
-        $this->info("Device status check complete. Checked {$devicesChecked} devices, sent {$notificationsSent} offline notifications.");
+        $this->info("Device status check complete. Checked {$devicesChecked} devices, sent {$notificationsSent} offline notifications, reset {$timersReset} timers.");
         
         return 0;
     }
