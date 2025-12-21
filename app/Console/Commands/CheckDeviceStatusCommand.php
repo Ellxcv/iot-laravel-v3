@@ -98,14 +98,18 @@ class CheckDeviceStatusCommand extends Command
 
             $this->sendNotificationUseCase->execute($dto);
             
-            // Record that notification was sent
-            $settings->recordNotificationSent();
+            // CRITICAL FIX: Update timestamp immediately and refresh model
+            // This prevents spam by ensuring the timestamp is set before next command run
+            $settings->last_notified_at = now();
+            $settings->save();
+            $settings->refresh(); // Refresh from database to ensure fresh data
 
             Log::info("Device offline notification sent", [
                 'device' => $device->name,
                 'device_id' => $device->device_id,
                 'last_seen' => $lastSeenText,
                 'timeout_minutes' => $timeoutMinutes,
+                'last_notified_at' => $settings->last_notified_at->toDateTimeString(),
             ]);
 
             $this->info("  → Sent offline alert for: {$device->name}");
