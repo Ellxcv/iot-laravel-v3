@@ -92,7 +92,7 @@ class CheckDeviceStatusCommand extends Command
         try {
             $dto = SendNotificationDTO::fromArray([
                 'user_id' => $device->user_id,
-                'type' => 'device_offline',
+                'type' => 'device_status', // Changed from 'device_offline' to valid type
                 'message' => $message,
             ]);
 
