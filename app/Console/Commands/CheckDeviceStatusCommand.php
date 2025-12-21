@@ -52,9 +52,8 @@ class CheckDeviceStatusCommand extends Command
             // This allows fresh notifications if device goes offline again
             if ($device->isOnline()) {
                 // If device is online and has a notification timestamp, reset it
-                if ($settings->last_notified_at !== null) {
-                    $settings->last_notified_at = null;
-                    $settings->save();
+                if ($settings->last_notified_devices && isset($settings->last_notified_devices[$device->device_id])) {
+                    $settings->resetDeviceNotificationTimer($device->device_id);
                     $timersReset++;
                     $this->info("  ✓ Reset notification timer for online device: {$device->name}");
                 }
@@ -63,8 +62,8 @@ class CheckDeviceStatusCommand extends Command
 
             // Device is offline - check if we should send notification
             
-            // Skip if not enough time has passed since last notification (prevent spam)
-            if (!$settings->isNotificationDue()) {
+            // PER-DEVICE spam prevention: Check if enough time passed since last notification FOR THIS DEVICE
+            if (!$settings->isDeviceNotificationDue($device->device_id)) {
                 continue;
             }
 
@@ -114,18 +113,14 @@ class CheckDeviceStatusCommand extends Command
 
             $this->sendNotificationUseCase->execute($dto);
             
-            // CRITICAL FIX: Update timestamp immediately and refresh model
-            // This prevents spam by ensuring the timestamp is set before next command run
-            $settings->last_notified_at = now();
-            $settings->save();
-            $settings->refresh(); // Refresh from database to ensure fresh data
+            // CRITICAL: Record notification timestamp for THIS SPECIFIC DEVICE
+            $settings->recordDeviceNotificationSent($device->device_id);
 
             Log::info("Device offline notification sent", [
                 'device' => $device->name,
                 'device_id' => $device->device_id,
                 'last_seen' => $lastSeenText,
                 'timeout_minutes' => $timeoutMinutes,
-                'last_notified_at' => $settings->last_notified_at->toDateTimeString(),
             ]);
 
             $this->info("  → Sent offline alert for: {$device->name}");
