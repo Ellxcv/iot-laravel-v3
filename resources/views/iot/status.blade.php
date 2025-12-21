@@ -100,7 +100,7 @@
 
             {{-- CO₂ PPM Chart --}}
             <div class="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20">
-                <h3 class="text-lg font-semibold text-white mb-4">CO₂ PPM</h3>
+                <h3 class="text-lg font-semibold text-white mb-4">PPM</h3>
                 <div class="h-64">
                     <canvas id="odorChart"></canvas>
                 </div>
@@ -154,7 +154,7 @@
                 </h3>
                 <div class="space-y-3">
                     <div>
-                        <p class="text-sm text-indigo-300">CO₂ PPM</p>
+                        <p class="text-sm text-indigo-300">PPM</p>
                         <p class="text-2xl font-bold text-white" id="co2_ppm">--</p>
                     </div>
                     <div>
@@ -337,11 +337,11 @@
                         </svg>
                         <span>Feed</span>
                     </button>
-                    <button onclick="feederCancel()" class="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-all duration-300 flex items-center justify-center space-x-2">
+                    <button onclick="loadCellTare()" class="px-6 py-3 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-lg transition-all duration-300 flex items-center justify-center space-x-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path>
                         </svg>
-                        <span>Cancel</span>
+                        <span>Tare</span>
                     </button>
                 </div>
             </div>
@@ -570,15 +570,24 @@
                 .catch(error => console.error('Error:', error));
             }
             
-            function feederCancel() {
+            function loadCellTare() {
                 const deviceId = '{{ $device->device_id }}';
-                fetch('/iot/control-feeder', {
+                const command = {
+                    id: 100,
+                    cmd: "tare",
+                    params: {}
+                };
+                
+                fetch('/iot/send-command', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-                    body: JSON.stringify({ device_id: deviceId, action: 'cancel' })
+                    body: JSON.stringify({ 
+                        device_id: deviceId, 
+                        command: JSON.stringify(command)
+                    })
                 })
                 .then(response => response.json())
-                .then(data => alert(data.message || 'Feeding cancelled'))
+                .then(data => alert(data.message || 'Tare command sent to load cell'))
                 .catch(error => console.error('Error:', error));
             }
 

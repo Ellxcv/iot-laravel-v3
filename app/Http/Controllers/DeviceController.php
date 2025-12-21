@@ -118,4 +118,36 @@ class DeviceController extends Controller
                 ->with('error', 'Failed to delete device: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Update device offline notification settings
+     */
+    public function updateOfflineSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'offline_timeout_minutes' => 'required|integer|min:1|max:1440',
+            'notification_enabled' => 'nullable|boolean',
+        ]);
+
+        try {
+            $user = auth()->user();
+            
+            // Get or create offline settings for user
+            $offlineSetting = \App\Models\DeviceOfflineSetting::firstOrNew(['user_id' => $user->id]);
+            
+            $offlineSetting->offline_timeout_minutes = $validated['offline_timeout_minutes'];
+            $offlineSetting->notification_enabled = $request->boolean('notification_enabled');
+            $offlineSetting->save();
+
+            return redirect()
+                ->route('devices.index')
+                ->with('success', '✅ Offline notification settings saved successfully!');
+
+        } catch (Exception $e) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Failed to save settings: ' . $e->getMessage());
+        }
+    }
 }

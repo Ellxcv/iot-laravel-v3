@@ -42,7 +42,7 @@
                         <option value="humidity" style="background-color: #1e1b4b; color: white;">Humidity</option>
                         <option value="water_level" style="background-color: #1e1b4b; color: white;">Water Level</option>
                         <option value="soil_moisture" style="background-color: #1e1b4b; color: white;">Soil Moisture</option>
-                        <option value="co2_ppm" style="background-color: #1e1b4b; color: white;">CO₂ PPM</option>
+                        <option value="co2_ppm" style="background-color: #1e1b4b; color: white;">PPM</option>
                         <option value="weight" style="background-color: #1e1b4b; color: white;">Weight</option>
                     </select>
                 </div>

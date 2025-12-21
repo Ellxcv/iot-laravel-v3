@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Sensor threshold monitoring (every 1 minute)
 Schedule::command('sensor:check-thresholds')->everyMinute();
+
+// Device offline status monitoring (every 1 minute)
+Schedule::command('device:check-status')->everyMinute()->withoutOverlapping();

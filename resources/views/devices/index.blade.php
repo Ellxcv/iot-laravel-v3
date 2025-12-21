@@ -79,6 +79,78 @@
         </form>
     </div>
 
+    {{-- Device Offline Notification Settings --}}
+    <div class="mb-8 bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20">
+        <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+            </svg>
+            Device Offline Notifications
+        </h2>
+
+        @php
+            $offlineSetting = auth()->user()->deviceOfflineSetting;
+        @endphp
+
+        <form method="POST" action="{{ route('devices.offline-settings.update') }}" class="space-y-4">
+            @csrf
+            @method('PATCH')
+            
+            <div class="bg-white/5 rounded-xl p-4 space-y-4">
+                <div class="flex items-start space-x-4">
+                    <svg class="w-12 h-12 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-white mb-2">Offline Alert System</h3>
+                        <p class="text-sm text-indigo-200">
+                            Get notified via Telegram and Firebase when your devices haven't sent updates for a specified time period.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="flex items-center space-x-3 cursor-pointer p-3 rounded-lg hover:bg-white/5 transition-colors">
+                            <input type="checkbox" name="notification_enabled" value="1" 
+                                   {{ $offlineSetting && $offlineSetting->notification_enabled ? 'checked' : '' }}
+                                   class="w-5 h-5 rounded bg-white/10 border-white/20 text-indigo-600 focus:ring-2 focus:ring-indigo-500">
+                            <div>
+                                <span class="text-white font-medium block">Enable Notifications</span>
+                                <span class="text-xs text-indigo-300">Send alerts when devices go offline</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div>
+                        <label class="text-sm text-indigo-300 mb-2 block">Offline Timeout (Minutes)</label>
+                        <input type="number" name="offline_timeout_minutes" 
+                               min="1" max="1440" 
+                               value="{{ $offlineSetting ? $offlineSetting->offline_timeout_minutes : 5 }}" 
+                               required
+                               class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                               placeholder="5">
+                        <p class="text-xs text-indigo-400 mt-1">
+                            Device considered offline if no update received for this many minutes
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-4 border-t border-white/10">
+                    <div class="text-sm text-indigo-300">
+                        <span class="text-white font-semibold">Note:</span> Notifications sent max once per hour to prevent spam
+                    </div>
+                    <button type="submit" class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-300 flex items-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span>Save Settings</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
     {{-- Device List --}}
     <div class="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20">
         <h2 class="text-2xl font-bold text-white mb-6 flex items-center justify-between">

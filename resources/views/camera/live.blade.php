@@ -180,17 +180,17 @@
                 <h4 class="text-sm font-semibold text-indigo-300 uppercase tracking-wide">Basic Commands</h4>
                 
                 <button onclick="sendCameraCommand('capture')" 
-                        class="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-lg transition-all duration-300 flex items-center justify-center space-x-2">
+                        class="hidden w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-lg transition-all duration-300 flex items-center justify-center space-x-2">
                     <span>📸 Capture Image</span>
                 </button>
 
                 <div class="grid grid-cols-2 gap-3">
                     <button onclick="sendCameraCommand('stream_start')" 
-                            class="px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-all">
+                            class="hidden px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-all">
                         <span>▶️ Start Stream</span>
                     </button>
                     <button onclick="sendCameraCommand('stream_stop')" 
-                            class="px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-all">
+                            class="hidden px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-all">
                         <span>⏹️ Stop Stream</span>
                     </button>
                 </div>

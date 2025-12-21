@@ -32,6 +32,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/devices', [App\Http\Controllers\DeviceController::class, 'store'])->name('devices.store');
     Route::patch('/devices/{id}/status', [App\Http\Controllers\DeviceController::class, 'updateStatus'])->name('devices.updateStatus');
     Route::delete('/devices/{id}', [App\Http\Controllers\DeviceController::class, 'destroy'])->name('devices.destroy');
+    Route::patch('/devices/offline-settings', [App\Http\Controllers\DeviceController::class, 'updateOfflineSettings'])->name('devices.offline-settings.update');
     
     // Camera Routes
     Route::prefix('camera')->name('camera.')->group(function () {
