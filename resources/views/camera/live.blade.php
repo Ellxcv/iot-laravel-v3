@@ -335,14 +335,14 @@
                 // Clear previous timeout
                 if (httpTimeout) clearTimeout(httpTimeout);
                 
-                // Set timeout to detect HTTP stream failure (5 seconds)
+                // Set timeout to detect HTTP stream failure (60 seconds)
                 httpTimeout = setTimeout(() => {
                     if (streamMode === 'http' && !streamImage.complete) {
                         console.warn('[Smart Stream] ⚠ HTTP stream timeout, falling back to WebSocket');
                         httpStreamFailed = true;
                         startWebSocketStream();
                     }
-                }, 5000);
+                }, 60000);
                 
                 // Handle successful load
                 streamImage.onload = function() {
