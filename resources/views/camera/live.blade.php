@@ -335,31 +335,20 @@
                 // Clear previous timeout
                 if (httpTimeout) clearTimeout(httpTimeout);
                 
-                // Set timeout to detect HTTP stream failure (15 seconds - give more time for slow connections)
+                // Set timeout to detect HTTP stream failure (5 seconds)
                 httpTimeout = setTimeout(() => {
                     if (streamMode === 'http' && !streamImage.complete) {
-                        console.warn('[Smart Stream] ⚠ HTTP stream timeout (15s), falling back to WebSocket');
+                        console.warn('[Smart Stream] ⚠ HTTP stream timeout, falling back to WebSocket');
                         httpStreamFailed = true;
-                        
-                        // Cleanup HTTP stream before switching
-                        streamImage.onload = null;
-                        streamImage.onerror = null;
-                        streamImage.src = '';
-                        
                         startWebSocketStream();
                     }
-                }, 15000); // Increased to 15 seconds
+                }, 5000);
                 
                 // Handle successful load
                 streamImage.onload = function() {
-                    // Only handle if still in HTTP mode (prevent late load after switch to WebSocket)
                     if (streamMode === 'http') {
                         clearTimeout(httpTimeout);
                         handleHttpStreamLoad();
-                    } else {
-                        console.log('[Smart Stream] Ignoring late HTTP load, already in WebSocket mode');
-                        // Clear the image since we're in WebSocket mode now
-                        streamImage.src = '';
                     }
                 };
                 
@@ -369,12 +358,6 @@
                         clearTimeout(httpTimeout);
                         console.warn('[Smart Stream] ⚠ HTTP stream failed, falling back to WebSocket');
                         httpStreamFailed = true;
-                        
-                        // Cleanup before switching
-                        streamImage.onload = null;
-                        streamImage.onerror = null;
-                        streamImage.src = '';
-                        
                         startWebSocketStream();
                     }
                 };
@@ -382,6 +365,7 @@
                 // Start HTTP stream with cache-busting
                 console.log('[Smart Stream] Starting HTTP Direct Stream...');
                 streamImage.src = currentStreamUrl + '?t=' + new Date().getTime();
+            }
 
             function handleHttpStreamLoad() {
                 const loadingOverlay = document.getElementById('loadingOverlay');
@@ -562,28 +546,8 @@
                 retryCount = 0;
                 httpStreamFailed = false;
                 
-                // Cleanup HTTP stream
+                // Cleanup
                 if (httpTimeout) clearTimeout(httpTimeout);
-                const streamImage = document.getElementById('streamImage');
-                streamImage.onload = null;
-                streamImage.onerror = null;
-                streamImage.src = '';
-                
-                // Reset WebSocket flag (will reinitialize if needed)
-                websocketInitialized = false;
-                
-                // Cleanup Pusher if exists
-                if (pusherInstance) {
-                    try {
-                        pusherInstance.disconnect();
-                        pusherInstance = null;
-                    } catch (e) {
-                        console.warn('[Smart Stream] Error disconnecting Pusher:', e);
-                    }
-                }
-                
-                // Reset mode
-                streamMode = null;
                 
                 // Restart stream with smart detection
                 initializeStream();
