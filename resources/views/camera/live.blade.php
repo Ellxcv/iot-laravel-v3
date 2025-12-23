@@ -32,9 +32,7 @@
                 <img id="streamImage" 
                      src="" 
                      alt="ESP32-CAM Live Stream" 
-                     class="w-full h-full object-contain"
-                     onerror="handleStreamError()"
-                     onload="handleStreamLoad()">
+                     class="w-full h-full object-contain">
                 
                 {{-- Loading Overlay --}}
                 <div id="loadingOverlay" class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center">
