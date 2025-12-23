@@ -262,9 +262,278 @@
             @else
                 let currentStreamUrl = '';
             @endif
+            
+            // Smart Hybrid Streaming Variables
+            let streamMode = null; // 'http' or 'websocket'
+            let httpStreamFailed = false;
+            let websocketInitialized = false;
             let retryCount = 0;
             const maxRetries = 3;
+            let httpTimeout = null;
+            let pusherInstance = null;
 
+            // ============================================
+            // NETWORK DETECTION
+            // ============================================
+            function isLocalNetwork(url) {
+                try {
+                    const urlObj = new URL(url);
+                    const hostname = urlObj.hostname;
+                    
+                    // Check for local IP patterns
+                    const localPatterns = [
+                        /^192\.168\./,           // Private Class C
+                        /^10\./,                  // Private Class A
+                        /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // Private Class B
+                        /^localhost$/,
+                        /^127\./                  // Loopback
+                    ];
+                    
+                    return localPatterns.some(pattern => pattern.test(hostname));
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            // ============================================
+            // SMART STREAM INITIALIZATION
+            // ============================================
+            function initializeStream() {
+                if (!currentStreamUrl) {
+                    console.error('[Smart Stream] No stream URL available');
+                    return;
+                }
+                
+                // Reset state
+                httpStreamFailed = false;
+                retryCount = 0;
+                
+                // Decide stream mode based on network detection
+                if (isLocalNetwork(currentStreamUrl)) {
+                    console.log('[Smart Stream] ✓ Detected LOCAL network, using HTTP Direct Stream');
+                    startHttpStream();
+                } else {
+                    console.log('[Smart Stream] ✓ Detected REMOTE access, using WebSocket Stream');
+                    startWebSocketStream();
+                }
+            }
+
+            // ============================================
+            // HTTP DIRECT STREAM (with fallback)
+            // ============================================
+            function startHttpStream() {
+                streamMode = 'http';
+                updateStreamStatus('http', 'connecting');
+                
+                const streamImage = document.getElementById('streamImage');
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                const errorOverlay = document.getElementById('errorOverlay');
+                
+                loadingOverlay.classList.remove('hidden');
+                loadingOverlay.classList.add('flex');
+                errorOverlay.classList.remove('flex');
+                errorOverlay.classList.add('hidden');
+                
+                // Clear previous timeout
+                if (httpTimeout) clearTimeout(httpTimeout);
+                
+                // Set timeout to detect HTTP stream failure (5 seconds)
+                httpTimeout = setTimeout(() => {
+                    if (streamMode === 'http' && !streamImage.complete) {
+                        console.warn('[Smart Stream] ⚠ HTTP stream timeout, falling back to WebSocket');
+                        httpStreamFailed = true;
+                        startWebSocketStream();
+                    }
+                }, 5000);
+                
+                // Handle successful load
+                streamImage.onload = function() {
+                    if (streamMode === 'http') {
+                        clearTimeout(httpTimeout);
+                        handleHttpStreamLoad();
+                    }
+                };
+                
+                // Handle error - fallback to WebSocket
+                streamImage.onerror = function() {
+                    if (streamMode === 'http') {
+                        clearTimeout(httpTimeout);
+                        console.warn('[Smart Stream] ⚠ HTTP stream failed, falling back to WebSocket');
+                        httpStreamFailed = true;
+                        startWebSocketStream();
+                    }
+                };
+                
+                // Start HTTP stream with cache-busting
+                console.log('[Smart Stream] Starting HTTP Direct Stream...');
+                streamImage.src = currentStreamUrl + '?t=' + new Date().getTime();
+            }
+
+            function handleHttpStreamLoad() {
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                
+                loadingOverlay.classList.remove('flex');
+                loadingOverlay.classList.add('hidden');
+                retryCount = 0;
+                
+                console.log('[Smart Stream] ✓ HTTP stream connected successfully');
+                updateStreamStatus('http', 'live');
+            }
+
+            // ============================================
+            // WEBSOCKET STREAM (conditional initialization)
+            // ============================================
+            function startWebSocketStream() {
+                streamMode = 'websocket';
+                updateStreamStatus('websocket', 'connecting');
+                
+                console.log('[Smart Stream] Starting WebSocket Stream...');
+                
+                // Only initialize Pusher once
+                if (websocketInitialized) {
+                    console.log('[Smart Stream] WebSocket already initialized');
+                    return;
+                }
+                
+                initializePusher();
+                websocketInitialized = true;
+            }
+
+            function initializePusher() {
+                @if($selectedCamera)
+                // Load Pusher script dynamically if not loaded
+                if (typeof Pusher === 'undefined') {
+                    const script = document.createElement('script');
+                    script.src = 'https://js.pusher.com/8.2.0/pusher.min.js';
+                    script.onload = function() {
+                        connectPusher();
+                    };
+                    document.head.appendChild(script);
+                } else {
+                    connectPusher();
+                }
+                @endif
+            }
+
+            function connectPusher() {
+                const deviceId = '{{ $selectedCamera->deviceId ?? "" }}';
+                
+                pusherInstance = new Pusher('{{ env('PUSHER_APP_KEY') }}', {
+                    cluster: '{{ env('PUSHER_APP_CLUSTER', 'ap1') }}',
+                    encrypted: true
+                });
+                
+                const channel = pusherInstance.subscribe(`camera.${deviceId}`);
+                let lastFrameTime = 0;
+                
+                // Listen for camera frames
+                channel.bind('CameraFrameReceived', function(data) {
+                    // Only update if in WebSocket mode
+                    if (streamMode !== 'websocket') {
+                        console.log('[Smart Stream] Ignoring WebSocket frame (HTTP mode active)');
+                        return;
+                    }
+                    
+                    console.log('[WebSocket] Frame received:', {
+                        deviceId: data.deviceId,
+                        timestamp: data.timestamp,
+                        fps: data.fps,
+                        size: data.frameData ? data.frameData.length : 0
+                    });
+                    
+                    // Update frame image
+                    const streamImage = document.getElementById('streamImage');
+                    streamImage.src = 'data:image/jpeg;base64,' + data.frameData;
+                    
+                    // Calculate FPS
+                    const now = Date.now();
+                    if (lastFrameTime > 0) {
+                        const dt = (now - lastFrameTime) / 1000;
+                        const currentFps = (1 / dt).toFixed(2);
+                        
+                        // Update FPS display
+                        const fpsElements = document.querySelectorAll('[data-fps]');
+                        fpsElements.forEach(el => {
+                            el.textContent = currentFps;
+                        });
+                    }
+                    lastFrameTime = now;
+                    
+                    // Hide loading overlay
+                    document.getElementById('loadingOverlay').classList.remove('flex');
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                    document.getElementById('errorOverlay').classList.remove('flex');
+                    document.getElementById('errorOverlay').classList.add('hidden');
+                    
+                    updateStreamStatus('websocket', 'live');
+                });
+                
+                // Connection state handling
+                pusherInstance.connection.bind('connected', function() {
+                    console.log('[WebSocket] ✓ Connected to Pusher');
+                });
+                
+                pusherInstance.connection.bind('disconnected', function() {
+                    console.log('[WebSocket] ⚠ Disconnected from Pusher');
+                    if (streamMode === 'websocket') {
+                        updateStreamStatus('websocket', 'offline');
+                    }
+                });
+                
+                pusherInstance.connection.bind('error', function(err) {
+                    console.error('[WebSocket] ✗ Connection error:', err);
+                    if (streamMode === 'websocket') {
+                        updateStreamStatus('websocket', 'error');
+                    }
+                });
+            }
+
+            // ============================================
+            // STREAM STATUS INDICATOR
+            // ============================================
+            function updateStreamStatus(mode, state) {
+                const streamStatus = document.getElementById('streamStatus');
+                
+                const modeLabels = {
+                    'http': 'HTTP Direct',
+                    'websocket': 'WebSocket'
+                };
+                
+                const stateConfig = {
+                    'connecting': { 
+                        color: 'yellow', 
+                        text: `Connecting (${modeLabels[mode]})...`, 
+                        pulse: true 
+                    },
+                    'live': { 
+                        color: 'green', 
+                        text: `● Live (${modeLabels[mode]})`, 
+                        pulse: true 
+                    },
+                    'offline': { 
+                        color: 'red', 
+                        text: 'Offline', 
+                        pulse: false 
+                    },
+                    'error': { 
+                        color: 'red', 
+                        text: 'Connection Error', 
+                        pulse: false 
+                    }
+                };
+                
+                const config = stateConfig[state];
+                const pulseClass = config.pulse ? 'animate-pulse' : '';
+                
+                streamStatus.innerHTML = `
+                    <div class="w-2 h-2 rounded-full bg-${config.color}-400 ${pulseClass}"></div>
+                    <span class="text-sm text-${config.color}-100 font-medium">${config.text}</span>
+                `;
+            }
+
+            // ============================================
+            // UTILITY FUNCTIONS
+            // ============================================
             function loadCamera() {
                 const deviceId = document.getElementById('deviceIdInput').value.trim();
                 if (deviceId) {
@@ -274,84 +543,44 @@
                 }
             }
 
-            function startStream() {
-                const streamImage = document.getElementById('streamImage');
-                const loadingOverlay = document.getElementById('loadingOverlay');
-                const errorOverlay = document.getElementById('errorOverlay');
-                const streamStatus = document.getElementById('streamStatus');
-
-                loadingOverlay.classList.remove('hidden');
-                loadingOverlay.classList.add('flex');
-                errorOverlay.classList.remove('flex');
-                errorOverlay.classList.add('hidden');
-
-                streamStatus.innerHTML = `
-                    <div class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></div>
-                    <span class="text-sm text-yellow-100 font-medium">Connecting...</span>
-                `;
-
-                streamImage.src = currentStreamUrl + '?t=' + new Date().getTime();
-            }
-
-            function handleStreamLoad() {
-                const loadingOverlay = document.getElementById('loadingOverlay');
-                const streamStatus = document.getElementById('streamStatus');
-
-                loadingOverlay.classList.remove('flex');
-                loadingOverlay.classList.add('hidden');
-                retryCount = 0;
-
-                streamStatus.innerHTML = `
-                    <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                    <span class="text-sm text-green-100 font-medium">Live</span>
-                `;
-            }
-
-            function handleStreamError() {
-                const errorOverlay = document.getElementById('errorOverlay');
-                const loadingOverlay = document.getElementById('loadingOverlay');
-                const streamStatus = document.getElementById('streamStatus');
-
-                loadingOverlay.classList.remove('flex');
-                loadingOverlay.classList.add('hidden');
-
-                if (retryCount < maxRetries) {
-                    retryCount++;
-                    console.log(`Retry ${retryCount}/${maxRetries}...`);
-                    setTimeout(startStream, 2000);
-                } else {
-                    errorOverlay.classList.remove('hidden');
-                    errorOverlay.classList.add('flex');
-                    
-                    streamStatus.innerHTML = `
-                        <div class="w-2 h-2 rounded-full bg-red-400"></div>
-                        <span class="text-sm text-red-100 font-medium">Offline</span>
-                    `;
-                }
-            }
-
             function refreshStream() {
+                console.log('[Smart Stream] Refreshing stream...');
                 retryCount = 0;
-                startStream();
+                httpStreamFailed = false;
+                
+                // Cleanup
+                if (httpTimeout) clearTimeout(httpTimeout);
+                
+                // Restart stream with smart detection
+                initializeStream();
             }
 
-            // Start stream on page load
+            // ============================================
+            // PAGE LOAD - START STREAM
+            // ============================================
             window.addEventListener('load', function() {
-                setTimeout(startStream, 1000);
+                @if($selectedCamera)
+                    console.log('[Smart Stream] Page loaded, initializing stream...');
+                    setTimeout(initializeStream, 1000);
+                @endif
             });
 
-            // Auto-update device status (FPS, etc) every 5 seconds
+            // ============================================
+            // AUTO-UPDATE DEVICE STATUS
+            // ============================================
             @if($selectedCamera)
             setInterval(function() {
                 fetch('/camera/{{ $selectedCamera->deviceId }}/status')
                     .then(res => res.json())
                     .then(data => {
                         if (data.success) {
-                            // Update FPS display
-                            const fpsElements = document.querySelectorAll('[data-fps]');
-                            fpsElements.forEach(el => {
-                                el.textContent = data.data.fps ?? 0;
-                            });
+                            // Update FPS display (only if using HTTP mode)
+                            if (streamMode === 'http') {
+                                const fpsElements = document.querySelectorAll('[data-fps]');
+                                fpsElements.forEach(el => {
+                                    el.textContent = data.data.fps ?? 0;
+                                });
+                            }
 
                             // Update status indicator
                             const statusElements = document.querySelectorAll('[data-status]');
@@ -366,7 +595,9 @@
             }, 5000);
             @endif
 
-            // Camera Control Functions
+            // ============================================
+            // CAMERA CONTROL FUNCTIONS
+            // ============================================
             const deviceId = '{{ $selectedCamera->deviceId ?? "" }}';
             const csrfToken = '{{ csrf_token() }}';
 
@@ -470,104 +701,6 @@
                 }, 3000);
             }
         </script>
-
-        {{-- Pusher WebSocket Client for Real-Time Streaming --}}
-        @if($selectedCamera)
-        <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
-        <script>
-            const deviceId = '{{ $selectedCamera->deviceId }}';
-            
-            // Initialize Pusher
-            const pusher = new Pusher('{{ env('PUSHER_APP_KEY') }}', {
-                cluster: '{{ env('PUSHER_APP_CLUSTER', 'ap1') }}',
-                encrypted: true
-            });
-            
-            // Subscribe to camera stream channel
-            const channel = pusher.subscribe(`camera.${deviceId}`);
-            
-            // FPS tracking
-            let lastFrameTime = 0;
-            let currentFps = 0;
-            
-            // Listen for camera frames
-            channel.bind('CameraFrameReceived', function(data) {
-                console.log('[WebSocket] Frame received:', {
-                    deviceId: data.deviceId,
-                    timestamp: data.timestamp,
-                    fps: data.fps,
-                    frameSize: data.frameData.length
-                });
-                
-                // Update frame image
-                const streamImage = document.getElementById('streamImage');
-                streamImage.src = 'data:image/jpeg;base64,' + data.frameData;
-                
-                // Calculate FPS
-                const now = Date.now();
-                if (lastFrameTime > 0) {
-                    const dt = (now - lastFrameTime) / 1000;
-                    currentFps = (1 / dt).toFixed(2);
-                    
-                    // Update FPS display
-                    const fpsElements = document.querySelectorAll('[data-fps]');
-                    fpsElements.forEach(el => {
-                        el.textContent = currentFps;
-                    });
-                }
-                lastFrameTime = now;
-                
-                // Hide loading, show stream
-                document.getElementById('loadingOverlay').classList.remove('flex');
-                document.getElementById('loadingOverlay').classList.add('hidden');
-                document.getElementById('errorOverlay').classList.remove('flex');
-                document.getElementById('errorOverlay').classList.add('hidden');
-                
-                // Update status to live
-                updateWebSocketStatus('live');
-            });
-            
-            // Connection state handling
-            pusher.connection.bind('connected', function() {
-                console.log('[WebSocket] Connected to Pusher');
-                updateWebSocketStatus('connecting');
-            });
-            
-            pusher.connection.bind('disconnected', function() {
-                console.log('[WebSocket] Disconnected from Pusher');
-                updateWebSocketStatus('offline');
-            });
-            
-            pusher.connection.bind('error', function(err) {
-                console.error('[WebSocket] Connection error:', err);
-                updateWebSocketStatus('error');
-            });
-            
-            function updateWebSocketStatus(state) {
-                const streamStatus = document.getElementById('streamStatus');
-                const statusConfig = {
-                    'connecting': { color: 'yellow', text: 'Connecting...', pulse: false },
-                    'live': { color: 'green', text: 'Live', pulse: true },
-                    'offline': { color: 'red', text: 'Offline', pulse: false },
-                    'error': { color: 'red', text: 'Error', pulse: false }
-                };
-                
-                const config = statusConfig[state];
-                const pulseClass = config.pulse ? 'animate-pulse' : '';
-                
-                streamStatus.innerHTML = `
-                    <div class="w-2 h-2 rounded-full bg-${config.color}-400 ${pulseClass}"></div>
-                    <span class="text-sm text-${config.color}-100 font-medium">${config.text}</span>
-                `;
-            }
-            
-            // Auto-start stream on page load (WebSocket ready)
-            window.addEventListener('load', function() {
-                console.log('[WebSocket] Page loaded, waiting for frames...');
-                // Status will update when first frame arrives or connection states change
-            });
-        </script>
-        @endif
     </x-slot>
 
 </x-layout>
