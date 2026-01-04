@@ -22,7 +22,16 @@ class HistoryController extends Controller
      */
     public function index(): View
     {
-        $devices = $this->iotRepository->getAllDevices();
+        // Check if user is admin
+        $isAdmin = auth()->user()->isAdmin();
+        
+        if ($isAdmin) {
+            // Admin can see all devices
+            $devices = $this->iotRepository->getAllDevices();
+        } else {
+            // Regular users only see their own devices
+            $devices = $this->iotRepository->getDevicesByUserId(auth()->id());
+        }
         
         return view('history.index', compact('devices'));
     }

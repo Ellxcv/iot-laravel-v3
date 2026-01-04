@@ -328,4 +328,12 @@ class EloquentIoTRepository implements IoTRepositoryInterface
     {
         return IoTDevice::orderBy('name')->get()->toArray();
     }
+
+    public function getDevicesByUserId(int $userId): array
+    {
+        return IoTDevice::where('user_id', $userId)
+            ->orderBy('name')
+            ->get()
+            ->toArray();
+    }
 }

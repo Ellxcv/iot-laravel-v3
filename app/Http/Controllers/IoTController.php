@@ -60,14 +60,15 @@ class IoTController extends Controller
         }
         
         if (!$device) {
-            // Create dummy device for demo
+            // Create dummy device for demo - use unique ID per user
+            $userId = auth()->id();
             $device = IoTDevice::create([
-                'device_id' => 'DEMO_001',
+                'device_id' => 'DEMO_USER_' . $userId,
                 'name' => 'Demo Device',
                 'control_mode' => 'automatic',
                 'status' => 'online',
                 'last_seen' => now(),
-                'user_id' => auth()->id(), // Assign to current user
+                'user_id' => $userId,
             ]);
             
             // Create dummy sensor data
@@ -97,7 +98,13 @@ class IoTController extends Controller
             ]);
             
             $device->load(['latestSensorData', 'actuatorState']);
-            $devices = IoTDevice::orderBy('name')->get();
+            
+            // Reload devices list with proper user filtering
+            if ($isAdmin) {
+                $devices = IoTDevice::orderBy('name')->get();
+            } else {
+                $devices = IoTDevice::where('user_id', $userId)->orderBy('name')->get();
+            }
         }
         
         return view('iot.status', compact('device', 'devices'));

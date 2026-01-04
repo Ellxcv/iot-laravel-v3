@@ -348,7 +348,8 @@
         </div>
     </div>
 
-    {{-- Command Interface --}}
+    {{-- Command Interface (Admin Only) --}}
+    @if(auth()->user()->isAdmin())
     <div class="mb-8">
         <div class="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20">
             <h2 class="text-2xl font-bold text-white mb-6">Send Custom Command</h2>
@@ -367,6 +368,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     {{-- Scripts --}}
     <x-slot name="scripts">

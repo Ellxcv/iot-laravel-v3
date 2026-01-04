@@ -70,71 +70,74 @@
 
         <!-- Devices Table -->
         <div class="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden">
-            <table class="w-full">
-                <thead class="bg-white/5 border-b border-white/10">
-                    <tr>
-                        <th class="px-6 py-4 text-left text-sm font-semibold text-indigo-200">Device ID</th>
-                        <th class="px-6 py-4 text-left text-sm font-semibold text-indigo-200">Name</th>
-                        <th class="px-6 py-4 text-left text-sm font-semibold text-indigo-200">Type</th>
-                        <th class="px-6 py-4 text-left text-sm font-semibold text-indigo-200">Owner</th>
-                        <th class="px-6 py-4 text-left text-sm font-semibold text-indigo-200">Status</th>
-                        <th class="px-6 py-4 text-right text-sm font-semibold text-indigo-200">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-white/5">
-                    @forelse($devices as $device)
-                        <tr class="hover:bg-white/5 transition-colors">
-                            <td class="px-6 py-4">
-                                <span class="text-white font-mono text-sm">{{ $device->device_id }}</span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="text-white font-medium">{{ $device->name }}</span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 bg-blue-500/20 text-blue-100 rounded-lg text-xs font-medium">
-                                    {{ \App\Domain\Entities\DeviceType::from($device->type)->label() }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="text-indigo-200">{{ $device->user?->name ?? 'Unassigned' }}</span>
-                            </td>
-                            <td class="px-6 py-4">
-                                @php
-                                    $status = \App\Domain\Entities\DeviceStatus::from($device->status);
-                                @endphp
-                                <span class="px-3 py-1 {{ $status->badgeClass() }} rounded-lg text-xs font-medium">
-                                    {{ $status->label() }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-right space-x-2">
-                                <a href="{{ route('admin.devices.show', $device) }}" 
-                                   class="inline-block px-3 py-1 bg-green-500/20 text-green-100 rounded hover:bg-green-500/30 transition">
-                                    View
-                                </a>
-                                <a href="{{ route('admin.devices.edit', $device) }}" 
-                                   class="inline-block px-3 py-1 bg-indigo-500/20 text-indigo-100 rounded hover:bg-indigo-500/30 transition">
-                                    Edit
-                                </a>
-                                <form action="{{ route('admin.devices.destroy', $device) }}" method="POST" class="inline-block"
-                                      onsubmit="return confirm('Are you sure you want to delete this device? This action cannot be undone.');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" 
-                                            class="px-3 py-1 bg-red-500/20 text-red-100 rounded hover:bg-red-500/30 transition">
-                                        Delete
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    @empty
+            <!-- Horizontal scroll wrapper for mobile -->
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-white/5 border-b border-white/10">
                         <tr>
-                            <td colspan="6" class="px-6 py-8 text-center text-indigo-300">
-                                No devices found. Create your first device!
-                            </td>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-indigo-200 whitespace-nowrap">Device ID</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-indigo-200 whitespace-nowrap">Name</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-indigo-200 whitespace-nowrap">Type</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-indigo-200 whitespace-nowrap">Owner</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-indigo-200 whitespace-nowrap">Status</th>
+                            <th class="px-6 py-4 text-right text-sm font-semibold text-indigo-200 whitespace-nowrap">Actions</th>
                         </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody class="divide-y divide-white/5">
+                        @forelse($devices as $device)
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="text-white font-mono text-sm">{{ $device->device_id }}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="text-white font-medium">{{ $device->name }}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-3 py-1 bg-blue-500/20 text-blue-100 rounded-lg text-xs font-medium">
+                                        {{ \App\Domain\Entities\DeviceType::from($device->type)->label() }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="text-indigo-200">{{ $device->user?->name ?? 'Unassigned' }}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    @php
+                                        $status = \App\Domain\Entities\DeviceStatus::from($device->status);
+                                    @endphp
+                                    <span class="px-3 py-1 {{ $status->badgeClass() }} rounded-lg text-xs font-medium">
+                                        {{ $status->label() }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-right space-x-2 whitespace-nowrap">
+                                    <a href="{{ route('admin.devices.show', $device) }}" 
+                                       class="inline-block px-3 py-1 bg-green-500/20 text-green-100 rounded hover:bg-green-500/30 transition">
+                                        View
+                                    </a>
+                                    <a href="{{ route('admin.devices.edit', $device) }}" 
+                                       class="inline-block px-3 py-1 bg-indigo-500/20 text-indigo-100 rounded hover:bg-indigo-500/30 transition">
+                                        Edit
+                                    </a>
+                                    <form action="{{ route('admin.devices.destroy', $device) }}" method="POST" class="inline-block"
+                                          onsubmit="return confirm('Are you sure you want to delete this device? This action cannot be undone.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" 
+                                                class="px-3 py-1 bg-red-500/20 text-red-100 rounded hover:bg-red-500/30 transition">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="px-6 py-8 text-center text-indigo-300">
+                                    No devices found. Create your first device!
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Pagination -->

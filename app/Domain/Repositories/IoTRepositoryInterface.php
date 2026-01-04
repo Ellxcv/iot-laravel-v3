@@ -34,4 +34,9 @@ interface IoTRepositoryInterface
      * Get all IoT devices
      */
     public function getAllDevices(): array;
+
+    /**
+     * Get IoT devices by user ID
+     */
+    public function getDevicesByUserId(int $userId): array;
 }
