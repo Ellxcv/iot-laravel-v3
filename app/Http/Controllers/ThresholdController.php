@@ -47,7 +47,7 @@ class ThresholdController extends Controller
 
         $validated = $request->validate([
             'thresholds' => 'required|array',
-            'thresholds.*.sensor_type' => 'required|string|in:temperature,humidity,air_quality',
+            'thresholds.*.sensor_type' => 'required|string|in:temperature,humidity,air_quality,water_level,weight',
             'thresholds.*.min_value' => 'nullable|numeric',
             'thresholds.*.max_value' => 'nullable|numeric',
             'thresholds.*.enabled' => 'required|boolean',

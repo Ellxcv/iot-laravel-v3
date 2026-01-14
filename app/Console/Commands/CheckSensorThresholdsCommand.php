@@ -62,6 +62,8 @@ class CheckSensorThresholdsCommand extends Command
             'temperature' => $sensorData->temperature,
             'humidity' => $sensorData->humidity,
             'air_quality' => $sensorData->air_quality,
+            'water_level' => $sensorData->water_level,
+            'weight' => $sensorData->weight,
             default => null,
         };
     }
@@ -104,6 +106,8 @@ class CheckSensorThresholdsCommand extends Command
             'temperature' => '°C',
             'humidity' => '%',
             'air_quality' => ' PPM',
+            'water_level' => '%',
+            'weight' => ' g',
             default => '',
         };
 
@@ -111,6 +115,8 @@ class CheckSensorThresholdsCommand extends Command
             'temperature' => '🌡️',
             'humidity' => '💧',
             'air_quality' => '💨',
+            'water_level' => '💧',
+            'weight' => '⚖️',
             default => '⚠️',
         };
 

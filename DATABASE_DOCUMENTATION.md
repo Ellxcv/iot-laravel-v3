@@ -6,7 +6,7 @@ Sistem ini adalah aplikasi monitoring IoT berbasis Laravel yang mengintegrasikan
 
 **Database Engine:** MySQL/MariaDB  
 **Framework:** Laravel 11.x  
-**Total Tables:** 17 tables
+**Total Tables:** 14 tables (13 documented + migrations)
 
 ---
 
@@ -32,13 +32,11 @@ Sistem ini adalah aplikasi monitoring IoT berbasis Laravel yang mengintegrasikan
 10. [notification_logs](#10-notification_logs) - Log pengiriman notifikasi
 11. [user_fcm_tokens](#11-user_fcm_tokens) - Token FCM untuk push notification
 12. [sensor_thresholds](#12-sensor_thresholds) - Threshold sensor untuk alert
+13. [device_offline_settings](#13-device_offline_settings) - Konfigurasi device offline alert per user
 
 ### Tabel Sistem (System Tables)
 
-13. [sessions](#13-sessions) - Session management Laravel
-14. [password_reset_tokens](#14-password_reset_tokens) - Token reset password
-15. [cache, cache_locks](#15-cache-cache_locks) - Cache Laravel
-16. [jobs, job_batches, failed_jobs](#16-jobs-job_batches-failed_jobs) - Queue system Laravel
+> **Note:** Tabel `migrations` ada di database untuk tracking migration history Laravel, tetapi tidak didokumentasikan karena hanya digunakan internal oleh framework.
 
 ---
 
@@ -559,7 +557,52 @@ Tabel untuk menyimpan konfigurasi threshold sensor yang akan memicu notifikasi a
 
 ---
 
-### 13. sessions
+### 13. device_offline_settings
+
+Tabel untuk menyimpan konfigurasi device offline alert per user.
+
+**Struktur Tabel:**
+
+| Kolom                    | Tipe Data       | Nullable | Default        | Keterangan                                |
+| ------------------------ | --------------- | -------- | -------------- | ----------------------------------------- |
+| id                       | BIGINT UNSIGNED | NO       | AUTO_INCREMENT | Primary key                               |
+| user_id                  | BIGINT UNSIGNED | NO       | -              | ID user (unique)                          |
+| offline_timeout_minutes  | INTEGER         | NO       | 5              | Menit sebelum device dianggap offline     |
+| notification_enabled     | BOOLEAN         | NO       | TRUE           | Enable/disable offline notifications      |
+| last_notified_at         | TIMESTAMP       | YES      | NULL           | Waktu terakhir notifikasi offline dikirim |
+| last_notified_device_ids | JSON            | YES      | NULL           | Array device IDs yang sudah dinotifikasi  |
+| created_at               | TIMESTAMP       | YES      | NULL           | Waktu pembuatan                           |
+| updated_at               | TIMESTAMP       | YES      | NULL           | Waktu update terakhir                     |
+
+**Indexes:**
+
+-   PRIMARY KEY: `id`
+-   UNIQUE KEY: `user_id`
+-   FOREIGN KEY: `user_id` → users(id) ON DELETE CASCADE
+
+**Relationships:**
+
+-   Belongs To: `users` (FK: user_id)
+
+**Business Logic:**
+
+-   Device dianggap offline jika `last_seen` lebih dari `offline_timeout_minutes` dari sekarang
+-   Notifikasi dikirim via Firebase Cloud Messaging (FCM) ke semua device user
+-   `last_notified_device_ids` menyimpan array device yang sudah dinotifikasi untuk mencegah spam
+-   Notifikasi baru dikirim jika ada device baru yang offline atau device yang sudah online kembali offline lagi
+
+**Default Settings:**
+
+-   `offline_timeout_minutes`: 5 menit
+-   `notification_enabled`: true
+
+**Use Case:**
+
+Dijalankan via Laravel Scheduler (Artisan Command) setiap menit untuk cek device yang offline dan kirim notifikasi ke pemilik device.
+
+---
+
+### 14. sessions
 
 Tabel untuk menyimpan session Laravel (authentication).
 
@@ -582,7 +625,7 @@ Tabel untuk menyimpan session Laravel (authentication).
 
 ---
 
-### 14. password_reset_tokens
+### 15. password_reset_tokens
 
 Tabel untuk menyimpan token reset password.
 
@@ -600,7 +643,11 @@ Tabel untuk menyimpan token reset password.
 
 ---
 
-### 15. cache, cache_locks
+## Tabel Deprecated / Tidak Digunakan
+
+### ❌ cache, cache_locks
+
+> **STATUS:** Tabel Laravel standard, ada di database tapi tidak aktif digunakan (cache driver menggunakan file/redis)
 
 Tabel untuk Laravel cache driver.
 
@@ -626,7 +673,9 @@ Tabel untuk Laravel cache driver.
 
 ---
 
-### 16. jobs, job_batches, failed_jobs
+### ❌ jobs, job_batches, failed_jobs
+
+> **STATUS:** Tabel Laravel standard, ada di database tapi tidak aktif digunakan (queue menggunakan database tapi via service workers)
 
 Tabel untuk Laravel queue system.
 
@@ -687,6 +736,7 @@ Tabel untuk Laravel queue system.
 erDiagram
     users ||--o{ iot_devices : "owns/manages"
     users ||--o| notification_settings : "has"
+    users ||--o| device_offline_settings : "has"
     users ||--o{ notification_logs : "receives"
     users ||--o{ user_fcm_tokens : "has"
     users ||--o{ sessions : "has"
@@ -934,7 +984,14 @@ erDiagram
     - ON DELETE: CASCADE
     - Satu user hanya memiliki satu konfigurasi notifikasi
 
-2. **iot_devices → actuator_states**
+2. **users → device_offline_settings**
+
+    - FK: `device_offline_settings.user_id` → `users.id`
+    - UNIQUE: `user_id`
+    - ON DELETE: CASCADE
+    - Satu user hanya memiliki satu konfigurasi device offline alert
+
+3. **iot_devices → actuator_states**
     - FK: `actuator_states.device_id` → `iot_devices.id`
     - UNIQUE: `device_id`
     - ON DELETE: CASCADE
@@ -1290,6 +1347,17 @@ long_query_time = 2
 
 ## Changelog Database Schema
 
+### v3.2.0 (2026-01-07)
+
+-   ❌ Removed `password_reset_tokens` table (feature not implemented, unused)
+-   🔧 Database optimization by removing unused system tables
+
+### v3.1.0 (2025-12-21)
+
+-   ✅ Added `device_offline_settings` table for device offline monitoring configuration
+-   ✅ Added JSON field `last_notified_device_ids` to prevent notification spam
+-   ✅ Implemented smart offline detection with configurable timeout per user
+
 ### v3.0.0 (2025-12-16)
 
 -   ✅ Added `camera_images` table for ESP32-CAM integration
@@ -1341,6 +1409,7 @@ long_query_time = 2
 -   `app/Models/NotificationLog.php`
 -   `app/Models/UserFcmToken.php`
 -   `app/Models/SensorThreshold.php`
+-   `app/Models/DeviceOfflineSetting.php`
 
 ### Migration Files Location
 
@@ -1348,6 +1417,6 @@ long_query_time = 2
 
 ---
 
-**Generated:** 2025-12-20  
-**Version:** 3.0.0  
+**Generated:** 2026-01-07  
+**Version:** 3.2.0  
 **Author:** IoT Monitoring System Team

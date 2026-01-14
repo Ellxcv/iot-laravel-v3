@@ -339,6 +339,62 @@
                         <input type="number" id="air_cooldown" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
                     </div>
                 </div>
+
+                <!-- Water Level -->
+                <div class="bg-white/10 rounded-xl p-4 border border-white/20">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-2xl">💧</span>
+                            <h4 class="text-lg font-bold text-white">Water Level</h4>
+                        </div>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <span class="text-sm text-indigo-200">Enabled</span>
+                            <input type="checkbox" id="water_enabled" class="w-5 h-5 rounded bg-white/10 border-white/20 text-indigo-600">
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm text-indigo-200 mb-1 block">Min (%)</label>
+                            <input type="number" step="0.1" id="water_min" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                        </div>
+                        <div>
+                            <label class="text-sm text-indigo-200 mb-1 block">Max (%)</label>
+                            <input type="number" step="0.1" id="water_max" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="text-sm text-indigo-200 mb-1 block">Cooldown (minutes)</label>
+                        <input type="number" id="water_cooldown" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                    </div>
+                </div>
+
+                <!-- Weight -->
+                <div class="bg-white/10 rounded-xl p-4 border border-white/20">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-2xl">⚖️</span>
+                            <h4 class="text-lg font-bold text-white">Weight</h4>
+                        </div>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <span class="text-sm text-indigo-200">Enabled</span>
+                            <input type="checkbox" id="weight_enabled" class="w-5 h-5 rounded bg-white/10 border-white/20 text-indigo-600">
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm text-indigo-200 mb-1 block">Min (grams)</label>
+                            <input type="number" step="0.1" id="weight_min" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                        </div>
+                        <div>
+                            <label class="text-sm text-indigo-200 mb-1 block">Max (grams)</label>
+                            <input type="number" step="0.1" id="weight_max" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="text-sm text-indigo-200 mb-1 block">Cooldown (minutes)</label>
+                        <input type="number" id="weight_cooldown" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white">
+                    </div>
+                </div>
             </div>
 
             <div class="flex justify-end space-x-3 mt-6">
@@ -395,7 +451,9 @@
                         // Populate form with current values
                         data.thresholds.forEach(t => {
                             const prefix = t.sensor_type === 'temperature' ? 'temp' : 
-                                         t.sensor_type === 'humidity' ? 'hum' : 'air';
+                                         t.sensor_type === 'humidity' ? 'hum' : 
+                                         t.sensor_type === 'water_level' ? 'water' :
+                                         t.sensor_type === 'weight' ? 'weight' : 'air';
                             
                             document.getElementById(`${prefix}_enabled`).checked = t.enabled;
                             document.getElementById(`${prefix}_min`).value = t.min_value || '';
@@ -440,6 +498,20 @@
                         max_value: document.getElementById('air_max').value || null,
                         enabled: document.getElementById('air_enabled').checked,
                         cooldown_minutes: parseInt(document.getElementById('air_cooldown').value) || 30
+                    },
+                    {
+                        sensor_type: 'water_level',
+                        min_value: document.getElementById('water_min').value || null,
+                        max_value: document.getElementById('water_max').value || null,
+                        enabled: document.getElementById('water_enabled').checked,
+                        cooldown_minutes: parseInt(document.getElementById('water_cooldown').value) || 30
+                    },
+                    {
+                        sensor_type: 'weight',
+                        min_value: document.getElementById('weight_min').value || null,
+                        max_value: document.getElementById('weight_max').value || null,
+                        enabled: document.getElementById('weight_enabled').checked,
+                        cooldown_minutes: parseInt(document.getElementById('weight_cooldown').value) || 30
                     }
                 ];
                 

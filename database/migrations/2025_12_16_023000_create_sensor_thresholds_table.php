@@ -65,6 +65,34 @@ return new class extends Migration
                 NOW() as updated_at
             FROM iot_devices
         ");
+
+        DB::statement("
+            INSERT INTO sensor_thresholds (device_id, sensor_type, min_value, max_value, enabled, cooldown_minutes, created_at, updated_at)
+            SELECT 
+                id as device_id,
+                'water_level' as sensor_type,
+                30.00 as min_value,
+                100.00 as max_value,
+                1 as enabled,
+                30 as cooldown_minutes,
+                NOW() as created_at,
+                NOW() as updated_at
+            FROM iot_devices
+        ");
+
+        DB::statement("
+            INSERT INTO sensor_thresholds (device_id, sensor_type, min_value, max_value, enabled, cooldown_minutes, created_at, updated_at)
+            SELECT 
+                id as device_id,
+                'weight' as sensor_type,
+                30.00 as min_value,
+                5000.00 as max_value,
+                1 as enabled,
+                30 as cooldown_minutes,
+                NOW() as created_at,
+                NOW() as updated_at
+            FROM iot_devices
+        ");
     }
 
     public function down(): void
